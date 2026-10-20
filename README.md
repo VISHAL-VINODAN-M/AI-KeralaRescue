@@ -92,7 +92,7 @@ Every feature below switches itself on only when its setting exists, and the ori
 | **Nearest helper** | "Suggest nearest" ranks helpers by distance and current workload (`GET /api/emergencies/{id}/nearest-helpers`). Helpers turn on *Share my location* on their page. | always on |
 | **Push notifications** | Firebase Cloud Messaging to citizens (status changes, messages) and helpers (new assignments). | server: `FIREBASE_SERVICE_ACCOUNT_JSON`; app: put `google-services.json` in `app/` and rebuild |
 | **SMS alerts** | Twilio SMS to helpers on assignment. | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`, `RESCUE_PUBLIC_URL` |
-| **PostgreSQL** | Production database instead of the local H2 file. | `SPRING_PROFILES_ACTIVE=postgres`, `RESCUE_DB_URL`, `RESCUE_DB_USER`, `RESCUE_DB_PASSWORD` |
+| **PostgreSQL** | Production database instead of the local H2 file. | On Render (the Dockerfile sets an H2 `SPRING_DATASOURCE_URL`, which would win over the profile): `SPRING_PROFILES_ACTIVE=postgres` plus your own `SPRING_DATASOURCE_URL` (`jdbc:postgresql://...`), `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`. Outside Docker you can use `RESCUE_DB_URL`, `RESCUE_DB_USER`, `RESCUE_DB_PASSWORD` instead. |
 
 Set `RESCUE_JWT_SECRET` (16+ characters) so login sessions survive a server restart. Photos and descriptions are sent to the Claude API for triage, so only enable it if that is acceptable for your data.
 

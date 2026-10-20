@@ -4,7 +4,7 @@ plugins { id 'com.android.application' }
 if (file('google-services.json').exists()) { apply plugin: 'com.google.gms.google-services' }
 
 def rescueApiBaseUrl = providers.gradleProperty('rescueApiBaseUrl')
-        .getOrElse('https://kerala-rescue.onrender.com/api/emergencies')
+        .getOrElse('https://ai-keralarescue.onrender.com/api/emergencies')
 
 android { namespace 'com.keralarescue.mobile'; compileSdk 35
     defaultConfig {

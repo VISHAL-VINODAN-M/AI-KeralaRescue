@@ -50,6 +50,8 @@ public final class RuleTriage {
         if (life || in.injured() >= 3) priority = "CRITICAL";
         else if (in.injured() > 0 || vulnerable || in.people() >= 5 || "FLOOD".equals(type) || "FIRE".equals(type) || "LANDSLIDE".equals(type) || "PERSON TRAPPED".equals(type)) priority = "HIGH";
         else priority = "MEDIUM";
+        // Never suggest less than the priority the person (or the one-tap SOS button) already chose.
+        if (TriageResult.rank(in.priority()) >= 0) priority = TriageResult.higher(priority, in.priority().trim().toUpperCase(Locale.ROOT));
 
         StringBuilder summary = new StringBuilder(label(type)).append(": ").append(in.people()).append(in.people() == 1 ? " person" : " people");
         if (in.injured() > 0) summary.append(", ").append(in.injured()).append(" injured");
