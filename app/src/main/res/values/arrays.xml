@@ -1,0 +1,8 @@
+<resources>
+    <string-array name="emergency_types">
+        <item>Fire</item><item>Flood</item><item>Earthquake</item><item>Crime</item><item>Accident</item><item>Medical</item><item>Person trapped</item><item>Other</item>
+    </string-array>
+    <string-array name="emergency_priorities">
+        <item>HIGH</item><item>CRITICAL</item><item>MEDIUM</item><item>LOW</item>
+    </string-array>
+</resources>

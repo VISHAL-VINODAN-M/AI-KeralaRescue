@@ -1,0 +1,10 @@
+.git
+.gradle
+.idea
+app
+build
+backend/.gradle
+backend/build
+backend/data
+local.properties
+*.zip

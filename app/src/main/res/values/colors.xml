@@ -1,0 +1,16 @@
+<resources>
+    <color name="rescue_red">#D92D20</color>
+    <color name="bg">#F6F7F9</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="ink">#111827</color>
+    <color name="muted">#6B7280</color>
+    <color name="line">#E5E7EB</color>
+    <color name="red_soft">#FEE4E2</color>
+    <color name="red_softer">#FEF3F2</color>
+    <color name="blue">#2155CD</color>
+    <color name="blue_soft">#EEF3FD</color>
+    <color name="green">#067647</color>
+    <color name="green_soft">#DCFAE6</color>
+    <color name="amber">#B54708</color>
+    <color name="amber_soft">#FEF0C7</color>
+</resources>

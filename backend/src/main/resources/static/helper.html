@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kerala Rescue · Helper</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --ink:#111827; --muted:#6b7280; --line:#e5e7eb; --blue:#2155cd; --blue-soft:#eef3fd;
+          --red:#d92d20; --red-soft:#fee4e2; --amber:#b54708; --amber-soft:#fef0c7; --green:#067647; --green-soft:#dcfae6; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  button,input,textarea { font:inherit; color:inherit; }
+  .wrap { max-width:560px; margin:0 auto; padding:16px 16px 48px; }
+  .top { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+  .top h1 { font-size:19px; margin:0; flex:1; } .top small { display:block; font-weight:400; font-size:13px; color:var(--muted); }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:18px; padding:18px; margin-bottom:14px; }
+  .card.crit { border-left:6px solid var(--red); }
+  input,textarea { width:100%; border:1px solid #d1d5db; border-radius:12px; padding:13px 14px; background:#fff; }
+  label { display:block; font-size:13px; font-weight:650; color:var(--muted); margin:12px 0 5px; }
+  .btn { display:block; width:100%; border:0; border-radius:14px; background:var(--blue); color:#fff; padding:15px; font-weight:700; font-size:16px; cursor:pointer; text-align:center; text-decoration:none; }
+  .btn.soft { background:var(--blue-soft); color:var(--blue); } .btn.ghost { background:#fff; color:var(--ink); border:1px solid #d1d5db; }
+  .btn.green { background:var(--green); } .btn.text { background:none; color:var(--muted); padding:10px; font-weight:600; width:auto; display:inline-block; }
+  .btn:disabled { opacity:.55; }
+  .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; } .grow { flex:1; }
+  .badge { display:inline-block; border-radius:999px; padding:3px 11px; font-size:12px; font-weight:700; background:#f3f4f6; }
+  .badge.CRITICAL { background:var(--red-soft); color:var(--red); } .badge.HIGH { background:var(--amber-soft); color:var(--amber); }
+  .badge.status { background:var(--blue-soft); color:var(--blue); }
+  .title { font-weight:750; font-size:18px; } .sub { color:var(--muted); font-size:13px; }
+  .facts { display:grid; grid-template-columns:1fr 1fr; gap:8px 14px; margin:14px 0; font-size:14px; }
+  .facts span { display:block; color:var(--muted); font-size:12px; } .facts b { font-weight:600; overflow-wrap:anywhere; }
+  .desc { white-space:pre-wrap; overflow-wrap:anywhere; margin:8px 0 12px; }
+  .photo { display:block; width:100%; max-height:260px; object-fit:cover; border-radius:12px; margin:8px 0 12px; background:#f3f4f6; }
+  .actions { display:grid; gap:10px; margin-top:14px; }
+  .steps { display:flex; gap:5px; margin:12px 0 2px; } .steps i { flex:1; height:6px; border-radius:3px; background:#e5e7eb; } .steps i.on { background:var(--blue); }
+  details { margin-top:12px; } summary { cursor:pointer; color:var(--blue); font-weight:650; font-size:14px; }
+  .msgs { display:grid; gap:6px; margin:8px 0; max-height:220px; overflow:auto; }
+  .msg { background:#f3f4f6; border-radius:12px; padding:8px 11px; font-size:14px; overflow-wrap:anywhere; } .msg small { display:block; color:var(--muted); }
+  .empty { text-align:center; color:var(--muted); padding:44px 16px; }
+  .err { color:var(--red); font-size:14px; min-height:20px; margin-top:10px; }
+  a.link { color:var(--blue); font-weight:650; }
+  .hide { display:none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <section id="login" class="hide">
+    <div class="top"><h1>Kerala Rescue<small>Helper sign-in</small></h1></div>
+    <div class="card">
+      <p class="sub" style="margin-top:0">Use the helper ID and PIN your dispatcher gave you.</p>
+      <label for="hid">Helper ID</label><input id="hid" autocomplete="username" autocapitalize="characters" placeholder="H-1A2B3C4D">
+      <label for="pin">PIN</label><input id="pin" type="password" inputmode="numeric" autocomplete="current-password" placeholder="6 digits">
+      <div class="err" id="loginErr"></div>
+      <button class="btn" id="signIn" style="margin-top:6px">Sign in</button>
+    </div>
+  </section>
+
+  <section id="home" class="hide">
+    <div class="top"><h1><span id="who">Helper</span><small id="live">Keeping this page open lets you hear new assignments.</small></h1><button class="btn text" id="signOut">Sign out</button></div>
+    <div class="card row" style="margin-bottom:12px"><div class="grow"><b>Share my location</b><div class="sub" id="shareState">Off. Turn on so the control room can see you on the map and send you the nearest requests.</div></div><button class="btn soft" id="shareBtn" style="width:auto;padding:10px 16px">Turn on</button></div>
+    <div id="list"></div>
+    <div id="empty" class="empty hide"><b>No assignments right now</b><br>New ones will appear here with a sound and a vibration.</div>
+  </section>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
+const val = v => v == null || v === '' ? '—' : String(v);
+const when = t => t ? new Date(t).toLocaleString([], { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' }) : '';
+let creds = null, seen = null, cards = new Map(), audio = null, timer = null;
+try { creds = JSON.parse(localStorage.getItem('helperCreds') || 'null'); } catch (_) {}
+const call = (url, o = {}) => fetch(url, { ...o, headers: { 'Content-Type':'application/json', ...(o.headers || {}), 'X-Helper-Id': creds.id, 'X-Helper-Pin': creds.pin } });
+
+function beep() {
+  try { audio = audio || new (window.AudioContext || window.webkitAudioContext)(); const o = audio.createOscillator(), g = audio.createGain();
+    o.connect(g); g.connect(audio.destination); o.frequency.value = 880; g.gain.setValueAtTime(.25, audio.currentTime); g.gain.exponentialRampToValueAtTime(.001, audio.currentTime + .9);
+    o.start(); o.stop(audio.currentTime + .9); } catch (_) {}
+  try { navigator.vibrate && navigator.vibrate([300, 150, 300]); } catch (_) {}
+}
+const FLOW = ['HELPER ASSIGNED', 'HELPER ON THE WAY', 'HELPER ARRIVED', 'RESCUE IN PROGRESS', 'RESOLVED'];
+const LEGACY = { TEAM_ASSIGNED:'HELPER ASSIGNED', IN_PROGRESS:'RESCUE IN PROGRESS' };
+const NEXT = { 'HELPER ASSIGNED':['HELPER ON THE WAY', 'Accept · I am on my way'], 'HELPER ON THE WAY':['HELPER ARRIVED', 'I have arrived'],
+               'HELPER ARRIVED':['RESCUE IN PROGRESS', 'Rescue started'], 'RESCUE IN PROGRESS':['RESOLVED', 'Rescue complete'] };
+
+async function setStatus(r, status, btn) {
+  if (status === 'RESOLVED' && !confirm('Mark this rescue as complete? It will be closed.')) return;
+  if (status === 'DECLINE' && !confirm('Hand this request back to the dispatcher?')) return;
+  btn.disabled = true;
+  const res = await call('/api/helper/assignments/' + encodeURIComponent(r.emergencyId) + '/status', { method:'PATCH', body: JSON.stringify({ status }) });
+  if (!res.ok) { alert('Could not update. Check your connection and try again.'); btn.disabled = false; return; }
+  delete cards.get(r.emergencyId)?.dataset.dirty; poll();
+}
+function makeCard(r) {
+  const c = el('article', 'card' + (r.priority === 'CRITICAL' ? ' crit' : ''));
+  c.addEventListener('input', () => c.dataset.dirty = '1');
+  const st = LEGACY[r.status] || r.status, idx = Math.max(0, FLOW.indexOf(st));
+  const head = el('div', 'row'); const l = el('div', 'grow'); l.append(el('div', 'title', r.emergencyType === 'CRITICAL_SOS' ? 'Critical SOS' : r.emergencyType), el('div', 'sub', r.emergencyId + ' · ' + when(r.createdAt)));
+  head.append(l, el('span', 'badge ' + r.priority, r.priority)); c.append(head);
+  const steps = el('div', 'steps'); FLOW.forEach((_, i) => steps.append(el('i', i <= idx ? 'on' : ''))); c.append(steps);
+  c.append(el('div', 'sub', 'Status: ' + st.toLowerCase()));
+  const f = el('div', 'facts');
+  [['People', r.peopleNeedingHelp], ['Injured', r.injuredCount], ['Conditions', r.conditionDetails], ['ETA given', r.estimatedArrival]].forEach(([k, v]) => { const d = el('div'); d.append(el('span', '', k), el('b', '', val(v))); f.append(d); });
+  c.append(f);
+  if (r.description) c.append(el('p', 'desc', r.description));
+  if (r.hasImage) { const img = el('img', 'photo'); img.alt = 'Photo from the person'; call('/api/helper/assignments/' + encodeURIComponent(r.emergencyId) + '/image').then(async x => { if (x.ok) img.src = URL.createObjectURL(await x.blob()); }).catch(() => {}); c.append(img); }
+  const acts = el('div', 'actions');
+  if (r.latitude != null) { const a = el('a', 'btn soft', 'Navigate to location'); a.href = 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(r.latitude + ',' + r.longitude); a.target = '_blank'; a.rel = 'noopener'; acts.append(a); }
+  if (r.phone) { const a = el('a', 'btn ghost', 'Call ' + r.phone); a.href = 'tel:' + r.phone; acts.append(a); }
+  const n = NEXT[st] || NEXT['HELPER ASSIGNED'];
+  const go = el('button', 'btn' + (n[0] === 'RESOLVED' ? ' green' : ''), n[1]); go.addEventListener('click', () => setStatus(r, n[0], go)); acts.append(go);
+  if (idx < 2) { const no = el('button', 'btn text', 'I cannot take this'); no.addEventListener('click', () => setStatus(r, 'DECLINE', no)); acts.append(no); }
+  c.append(acts);
+  const d = el('details'); d.append(el('summary', '', 'Messages')); const list = el('div', 'msgs'); d.append(list);
+  const row = el('div', 'row'); const mi = el('input', 'grow'); mi.placeholder = 'Write a message'; mi.style.width = 'auto'; const ms = el('button', 'btn soft', 'Send'); ms.style.width = 'auto'; ms.style.padding = '13px 18px'; row.append(mi, ms); d.append(row);
+  const base = '/api/helper/assignments/' + encodeURIComponent(r.emergencyId) + '/messages';
+  async function load() { try { const x = await call(base); if (!x.ok) return; const items = await x.json(); list.replaceChildren(); items.forEach(m => { const b = el('div', 'msg'); b.append(el('small', '', m.senderName + ' · ' + when(m.createdAt)), el('span', '', m.message)); list.append(b); }); } catch (_) {} }
+  d.addEventListener('toggle', () => { if (d.open) load(); });
+  ms.addEventListener('click', async () => { const t = mi.value.trim(); if (!t) return; const x = await call(base, { method:'POST', body: JSON.stringify({ message: t }) }); if (x.ok) { mi.value = ''; load(); } else alert('Message not sent.'); });
+  c.append(d); return c;
+}
+async function poll() {
+  if (!creds) return;
+  try {
+    const r = await call('/api/helper/assignments');
+    if (r.status === 401 || r.status === 429) { signOut(r.status === 429 ? 'Too many wrong PINs. Try again in a few minutes.' : 'Please sign in again.'); return; }
+    if (!r.ok) throw new Error();
+    const items = await r.json(), ids = new Set(items.map(x => x.emergencyId));
+    if (seen && items.some(x => !seen.has(x.emergencyId))) { beep(); try { new Notification('New assignment', { body: items.find(x => !seen.has(x.emergencyId)).emergencyId }); } catch (_) {} }
+    seen = ids; $('#live').textContent = 'Updated ' + new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+    const order = items.map(x => { let c = cards.get(x.emergencyId); if (!c || !c.dataset.dirty) { c = makeCard(x); cards.set(x.emergencyId, c); } return c; });
+    [...cards.keys()].forEach(k => { if (!ids.has(k)) cards.delete(k); });
+    const box = $('#list'); if (!(order.length === box.children.length && order.every((c, i) => box.children[i] === c))) box.replaceChildren(...order);
+    $('#empty').classList.toggle('hide', items.length > 0);
+    document.title = (items.length ? '(' + items.length + ') ' : '') + 'Kerala Rescue · Helper';
+  } catch (_) { $('#live').textContent = 'No connection. Retrying…'; }
+}
+/* ---------- live updates (server-sent events) and location sharing ---------- */
+let es = null, watchId = null, lastSent = 0;
+async function connectLive() {
+  if (es) { es.close(); es = null; }
+  if (!creds || !window.EventSource) return;
+  try {
+    const r = await fetch('/api/auth/helper', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ helperId: creds.id, pin: creds.pin }) });
+    if (!r.ok) return;
+    const token = (await r.json()).token;
+    es = new EventSource('/api/helper/stream?token=' + encodeURIComponent(token));
+    ['created', 'updated', 'ai', 'message'].forEach(t => es.addEventListener(t, () => poll()));
+    es.onerror = () => { if (es && es.readyState === 2) es = null; };
+  } catch (_) {}
+}
+function setShare(on) {
+  const st = $('#shareState'), btn = $('#shareBtn');
+  try { localStorage.setItem('shareLoc', on ? '1' : '0'); } catch (_) {}
+  if (watchId != null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+  if (!on) { st.textContent = 'Off. Turn on so the control room can see you on the map and send you the nearest requests.'; btn.textContent = 'Turn on'; return; }
+  if (!navigator.geolocation) { st.textContent = 'This phone or browser cannot share location.'; return; }
+  btn.textContent = 'Turn off'; st.textContent = 'Finding your location…';
+  watchId = navigator.geolocation.watchPosition(pos => {
+    const now = Date.now(); if (now - lastSent < 30000 || !creds) return; lastSent = now;
+    call('/api/helper/location', { method:'POST', body: JSON.stringify({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }) })
+      .then(x => { st.textContent = x.ok ? 'Sharing your location with the control room (updated ' + new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }) + ').' : 'Could not send your location.'; })
+      .catch(() => { st.textContent = 'No connection. Will retry.'; });
+  }, err => { st.textContent = 'Location is blocked: ' + err.message + '. Allow location for this page.'; btn.textContent = 'Turn on'; watchId = null; },
+  { enableHighAccuracy: true, maximumAge: 15000, timeout: 30000 });
+}
+$('#shareBtn').addEventListener('click', () => setShare(watchId == null));
+
+function showHome(name) { $('#login').classList.add('hide'); $('#home').classList.remove('hide'); $('#who').textContent = name; seen = null; poll(); clearInterval(timer); timer = setInterval(poll, 15000); connectLive(); let on = false; try { on = localStorage.getItem('shareLoc') === '1'; } catch (_) {} if (on) setShare(true); }
+function signOut(msg) { if (watchId != null) { navigator.geolocation.clearWatch(watchId); watchId = null; } if (es) { es.close(); es = null; } creds = null; try { localStorage.removeItem('helperCreds'); } catch (_) {} clearInterval(timer); cards.clear(); $('#list').replaceChildren();
+  $('#home').classList.add('hide'); $('#login').classList.remove('hide'); $('#pin').value = ''; $('#loginErr').textContent = typeof msg === 'string' ? msg : ''; }
+$('#signOut').addEventListener('click', () => signOut());
+$('#signIn').addEventListener('click', async () => {
+  const id = $('#hid').value.trim().toUpperCase(), pin = $('#pin').value.trim(); if (!id || !pin) { $('#loginErr').textContent = 'Enter your helper ID and PIN.'; return; }
+  creds = { id, pin }; $('#signIn').disabled = true;
+  try {
+    const r = await call('/api/helper/me');
+    if (r.ok) { const me = await r.json(); try { localStorage.setItem('helperCreds', JSON.stringify(creds)); } catch (_) {} try { Notification.requestPermission(); } catch (_) {} beep(); showHome(me.name); }
+    else { creds = null; $('#loginErr').textContent = r.status === 429 ? 'Too many wrong PINs. Try again in a few minutes.' : 'Wrong helper ID or PIN.'; }
+  } catch (_) { creds = null; $('#loginErr').textContent = 'Could not reach the server. Check your Wi-Fi.'; }
+  $('#signIn').disabled = false;
+});
+$('#pin').addEventListener('keydown', e => { if (e.key === 'Enter') $('#signIn').click(); });
+$('#hid').value = new URLSearchParams(location.search).get('id') || (creds && creds.id) || '';
+(async () => {
+  if (creds) { try { const r = await call('/api/helper/me'); if (r.ok) { showHome((await r.json()).name); return; } } catch (_) {} creds = null; }
+  $('#login').classList.remove('hide');
+})();
+</script>
+</body>
+</html>

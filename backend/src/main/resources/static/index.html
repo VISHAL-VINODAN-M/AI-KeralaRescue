@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kerala Rescue · Control room</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --ink:#111827; --muted:#6b7280; --line:#e5e7eb; --blue:#2155cd; --blue-soft:#eef3fd;
+          --red:#d92d20; --red-soft:#fee4e2; --amber:#b54708; --amber-soft:#fef0c7; --green:#067647; --green-soft:#dcfae6; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  button,input,select,textarea { font:inherit; color:inherit; }
+  header { background:var(--card); border-bottom:1px solid var(--line); }
+  .bar { max-width:1000px; margin:0 auto; padding:14px 20px; display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  .brand { font-weight:750; font-size:18px; flex:1; min-width:180px; }
+  .brand small { display:block; font-weight:500; font-size:12px; color:var(--muted); }
+  main { max-width:1000px; margin:0 auto; padding:20px; }
+  .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px; margin-bottom:18px; }
+  .stat { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px 14px; }
+  .stat b { display:block; font-size:24px; line-height:1.2; } .stat span { color:var(--muted); font-size:12px; }
+  nav { display:flex; gap:6px; margin-bottom:16px; border-bottom:1px solid var(--line); }
+  nav button { background:none; border:0; padding:10px 14px; font-weight:650; color:var(--muted); cursor:pointer; border-bottom:3px solid transparent; margin-bottom:-1px; }
+  nav button.on { color:var(--blue); border-color:var(--blue); }
+  .btn { border:0; border-radius:10px; background:var(--blue); color:#fff; padding:9px 14px; font-weight:650; cursor:pointer; }
+  .btn.soft { background:var(--blue-soft); color:var(--blue); } .btn.ghost { background:#fff; color:var(--ink); border:1px solid #d1d5db; }
+  .btn.red { background:var(--red-soft); color:var(--red); } .btn:disabled { opacity:.55; cursor:default; }
+  input,select,textarea { border:1px solid #d1d5db; border-radius:10px; padding:9px 11px; background:#fff; min-width:0; }
+  .how { background:var(--blue-soft); border-radius:14px; padding:14px 16px; margin-bottom:16px; display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; }
+  .how div { font-size:13px; color:#1e3a8a; } .how b { display:block; font-size:14px; color:var(--blue); margin-bottom:2px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:18px; margin-bottom:14px; }
+  .card.crit { border-left:5px solid var(--red); }
+  .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .grow { flex:1; min-width:0; }
+  .badge { display:inline-block; border-radius:999px; padding:3px 10px; font-size:12px; font-weight:700; background:#f3f4f6; color:#374151; }
+  .badge.CRITICAL { background:var(--red-soft); color:var(--red); } .badge.HIGH { background:var(--amber-soft); color:var(--amber); }
+  .badge.status { background:var(--blue-soft); color:var(--blue); } .badge.ok { background:var(--green-soft); color:var(--green); }
+  .title { font-weight:700; font-size:16px; } .sub { color:var(--muted); font-size:12px; overflow-wrap:anywhere; }
+  .facts { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:8px 14px; margin:12px 0; font-size:13px; }
+  .facts span { display:block; color:var(--muted); font-size:12px; } .facts b { font-weight:600; overflow-wrap:anywhere; }
+  .desc { margin:8px 0; white-space:pre-wrap; overflow-wrap:anywhere; }
+  .photo { display:block; max-width:min(100%,360px); max-height:240px; object-fit:contain; border-radius:10px; background:#f3f4f6; margin:10px 0; }
+  .assign { background:#f9fafb; border:1px solid var(--line); border-radius:12px; padding:12px; margin-top:12px; }
+  .assign h4 { margin:0 0 8px; font-size:13px; color:var(--muted); font-weight:650; }
+  details { margin-top:10px; } summary { cursor:pointer; color:var(--blue); font-weight:600; font-size:13px; }
+  .msgs { display:grid; gap:6px; margin:8px 0; max-height:200px; overflow:auto; }
+  .msg { background:#f3f4f6; border-radius:10px; padding:7px 10px; font-size:13px; overflow-wrap:anywhere; } .msg small { display:block; color:var(--muted); }
+  .empty { text-align:center; color:var(--muted); background:#fff; border:1px dashed #d1d5db; border-radius:16px; padding:36px 16px; }
+  #notice { color:var(--muted); font-size:13px; min-height:20px; margin-bottom:10px; }
+  .pin { background:var(--green-soft); border:1px solid #abefc6; border-radius:12px; padding:12px 14px; margin-bottom:14px; }
+  .pin code { font-size:22px; font-weight:800; letter-spacing:.15em; }
+  .gate { max-width:420px; margin:12vh auto; text-align:center; }
+  .hide { display:none !important; }
+  a { color:var(--blue); font-weight:600; }
+  .chips { display:flex; gap:6px; flex-wrap:wrap; }
+  .chip { border-radius:999px; padding:2px 9px; font-size:11px; font-weight:700; background:#f3f4f6; color:#6b7280; }
+  .chip.on { background:var(--green-soft); color:var(--green); }
+  .ai { background:#f5f3ff; border:1px solid #ddd6fe; border-radius:12px; padding:12px; margin:10px 0; font-size:13px; }
+  .ai h4 { margin:0 0 6px; font-size:12px; color:#5b21b6; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+  .ai p { margin:4px 0; overflow-wrap:anywhere; }
+  .flag { display:inline-block; background:#ede9fe; color:#5b21b6; border-radius:6px; padding:1px 7px; font-size:11px; font-weight:700; margin:2px 4px 2px 0; }
+  .flag.warn { background:var(--red-soft); color:var(--red); }
+  .tr { background:#fff; border:1px dashed #c4b5fd; border-radius:8px; padding:6px 9px; margin-top:6px; overflow-wrap:anywhere; }
+  .brief { background:#f5f3ff; border:1px solid #ddd6fe; }
+  .brief pre { white-space:pre-wrap; font:inherit; margin:8px 0 0; }
+  #map { height:520px; border-radius:16px; border:1px solid var(--line); z-index:0; }
+  .legend { display:flex; gap:14px; flex-wrap:wrap; font-size:12px; color:var(--muted); margin:8px 2px 0; }
+  .legend i { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:5px; vertical-align:middle; }
+  .sugg { display:grid; gap:6px; margin-top:8px; }
+  .sugg button { text-align:left; background:#fff; border:1px solid var(--line); border-radius:10px; padding:8px 10px; cursor:pointer; }
+  .sugg button small { display:block; color:var(--muted); }
+  .live-dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:#9ca3af; margin-right:5px; }
+  .live-dot.on { background:#12b76a; }
+</style>
+</head>
+<body>
+<header><div class="bar">
+  <div class="brand">Kerala Rescue<small>Control room · dispatcher</small></div>
+  <div class="chips" id="chips"><span class="chip" id="chipLive"><span class="live-dot" id="liveDot"></span>Live</span><span class="chip" id="chipAi">AI</span><span class="chip" id="chipSms">SMS</span><span class="chip" id="chipPush">Push</span></div>
+  <div class="row" id="keyRow"><input id="responderKey" type="password" placeholder="Responder key" autocomplete="off" style="width:170px"><button class="btn" id="saveKey">Unlock</button></div>
+</div></header>
+
+<main>
+  <section id="gate" class="card gate hide">
+    <h2 style="margin-top:0">Enter the responder key</h2>
+    <p class="sub">This is the password set with RESCUE_RESPONDER_KEY when the server was started. Only dispatchers need it. Helpers use their own PIN on the helper page.</p>
+  </section>
+
+  <section id="app" class="hide">
+    <div class="stats">
+      <div class="stat"><b id="openCount">—</b><span>Active requests</span></div>
+      <div class="stat"><b id="criticalCount">—</b><span>Critical now</span></div>
+      <div class="stat"><b id="peopleCount">—</b><span>People needing help</span></div>
+      <div class="stat"><b id="unassignedCount">—</b><span>Waiting for a helper</span></div>
+      <div class="stat"><b id="responseTime">—</b><span>Avg. time to arrival</span></div>
+    </div>
+    <div class="card brief" id="briefCard">
+      <div class="row"><div class="title grow">Situation brief</div><button class="btn soft" id="briefBtn">Generate brief</button></div>
+      <pre id="briefText" class="sub" style="color:var(--ink);font-size:13px">A short summary of every open request, written by AI (or by simple rules if AI is not set up).</pre>
+    </div>
+    <nav>
+      <button data-tab="requests" class="on">Requests</button>
+      <button data-tab="map">Map</button>
+      <button data-tab="helpers">Helpers</button>
+      <button data-tab="history">History</button>
+    </nav>
+    <div id="notice" aria-live="polite"></div>
+
+    <section id="tab-requests">
+      <div class="how">
+        <div><b>1 · Add your helpers</b>Open the Helpers tab and add each rescuer. They get a PIN and a personal link.</div>
+        <div><b>2 · Assign a request</b>Pick a helper on a request, then send them the link by WhatsApp or SMS.</div>
+        <div><b>3 · Helper updates progress</b>The helper opens their page on their phone and taps On my way, Arrived, Complete. The person who asked for help sees every step.</div>
+      </div>
+      <div id="cards"></div>
+      <div id="emptyRequests" class="empty hide">No active requests. New SOS and help requests appear here automatically.</div>
+    </section>
+
+    <section id="tab-map" class="hide">
+      <div id="map"></div>
+      <div class="legend"><span><i style="background:#d92d20"></i>Critical</span><span><i style="background:#f79009"></i>High</span><span><i style="background:#2155cd"></i>Medium / low</span><span><i style="background:#12b76a"></i>Helper (location shared)</span></div>
+      <p class="sub" id="mapNote"></p>
+    </section>
+
+    <section id="tab-helpers" class="hide">
+      <div id="pinBox" class="pin hide"></div>
+      <div class="card">
+        <div class="title" style="margin-bottom:10px">Add a helper</div>
+        <div class="row"><input id="helperName" placeholder="Name or team, e.g. Fire team A" class="grow"><input id="helperPhone" placeholder="Phone (for WhatsApp / SMS)" type="tel" style="width:210px"><button class="btn" id="addHelper">Add helper</button></div>
+        <p class="sub" style="margin:10px 0 0">Helpers sign in on their own phone with the ID and PIN shown after you add them. The PIN is shown only once; use Reset PIN if it is lost.</p>
+      </div>
+      <div class="card">
+        <div class="title" style="margin-bottom:4px">Address helpers will use</div>
+        <p class="sub" style="margin:0 0 8px">Must be reachable from their phones (use this computer's Wi-Fi address, not "localhost").</p>
+        <div class="row"><input id="baseUrl" class="grow" placeholder="http://192.168.1.25:8080"><button class="btn soft" id="saveBase">Save</button></div>
+        <p id="baseWarn" class="sub hide" style="color:var(--amber);margin:8px 0 0">You opened this page as "localhost". Helpers cannot reach that. Enter your Wi-Fi address above (run ipconfig to find it).</p>
+      </div>
+      <div id="helperList"></div>
+    </section>
+
+    <section id="tab-history" class="hide"><div id="historyList"></div></section>
+  </section>
+</main>
+
+<script>
+const $ = s => document.querySelector(s);
+let key = ''; try { key = sessionStorage.getItem('responderKey') || ''; } catch (_) {}
+let helpers = [], cardEls = new Map(), known = null;
+const api = (url, o = {}) => fetch(url, { ...o, headers: { 'Content-Type':'application/json', ...(o.headers||{}), 'X-Responder-Key': key } });
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+const val = v => v == null || v === '' ? '—' : String(v);
+const when = t => t ? new Date(t).toLocaleString([], { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' }) : '—';
+const notice = msg => { $('#notice').textContent = msg || ''; };
+function baseUrl() { let b = ''; try { b = localStorage.getItem('helperBase') || ''; } catch (_) {} return (b || location.origin).replace(/\/+$/, ''); }
+const helperLink = h => baseUrl() + '/helper.html?id=' + encodeURIComponent(h.helperId);
+async function blobImage(img, url) { try { const r = await api(url); if (r.ok) img.src = URL.createObjectURL(await r.blob()); } catch (_) {} }
+function field(label, value) { const d = el('div'); d.append(el('span', '', label), el('b', '', val(value))); return d; }
+function phoneDigits(p) { const d = (p || '').replace(/\D/g, ''); return d.length === 10 ? '91' + d : d; }
+
+/* ---------- tabs ---------- */
+document.querySelectorAll('nav button').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('nav button').forEach(x => x.classList.toggle('on', x === b));
+  ['requests','map','helpers','history'].forEach(t => $('#tab-' + t).classList.toggle('hide', t !== b.dataset.tab));
+  if (b.dataset.tab === 'map') { ensureMap(); setTimeout(() => { map && map.invalidateSize(); drawMap(); }, 50); }
+}));
+
+/* ---------- AI box ---------- */
+const FLAG_WARN = new Set(['LIFE_THREATENING', 'POSSIBLE_DUPLICATE', 'PRIORITY_RAISED']);
+async function translateInto(text, target, out, btn) {
+  btn.disabled = true; out.textContent = 'Translating…';
+  try {
+    const x = await api('/api/translate', { method:'POST', body: JSON.stringify({ text, target }) });
+    if (x.status === 503) { out.textContent = 'AI translation is not set up on this server.'; }
+    else if (!x.ok) { out.textContent = 'Could not translate.'; }
+    else out.textContent = (await x.json()).translation;
+  } catch (_) { out.textContent = 'Could not translate.'; }
+  btn.disabled = false;
+}
+function aiBox(r, card) {
+  const a = r.ai, box = el('div', 'ai');
+  const h = el('div', 'row'); h.append(el('h4', 'grow', a ? (a.source === 'CLAUDE' ? 'AI triage (advisory)' : 'Rule-based triage (advisory)') : 'Triage pending…'));
+  const again = el('button', 'btn ghost', 'Re-analyse'); again.style.padding = '4px 10px';
+  again.addEventListener('click', async () => { again.disabled = true; const x = await api('/api/emergencies/' + encodeURIComponent(r.emergencyId) + '/analyze', { method:'POST' }); notice(x.ok ? 'Re-analysing… the result appears here in a moment.' : 'Could not start analysis.'); });
+  h.append(again); box.append(h);
+  if (a) {
+    box.append(el('p', '', a.summary || ''));
+    const f = el('div'); (a.flags || []).forEach(x => f.append(el('span', 'flag' + (FLAG_WARN.has(x) ? ' warn' : ''), x.replaceAll('_', ' ').toLowerCase())));
+    if (a.duplicateOf) f.append(el('span', 'flag warn', 'similar to ' + a.duplicateOf));
+    box.append(f);
+    box.append(el('p', 'sub', 'Suggested: ' + a.priority + ' · ' + a.type + (a.confidence != null ? ' · confidence ' + Math.round(a.confidence * 100) + '%' : '')));
+    if (a.translation) box.append(el('div', 'tr', a.translation));
+  }
+  if (r.description) {
+    const row = el('div', 'row'); row.style.marginTop = '8px';
+    const out = el('div', 'tr hide');
+    const mk = (label, target) => { const b = el('button', 'btn ghost', label); b.style.padding = '4px 10px'; b.addEventListener('click', () => { out.classList.remove('hide'); translateInto(r.description, target, out, b); }); return b; };
+    row.append(mk('Translate to English', 'en'), mk('Translate to Malayalam', 'ml')); box.append(row, out);
+  }
+  return box;
+}
+
+/* ---------- situation brief ---------- */
+$('#briefBtn').addEventListener('click', async () => {
+  const b = $('#briefBtn'); b.disabled = true; $('#briefText').textContent = 'Writing brief…';
+  try { const x = await api('/api/ai/situation'); if (!x.ok) throw new Error(); const d = await x.json(); $('#briefText').textContent = d.brief + (d.source === 'CLAUDE' ? '' : '\n\n(Generated by simple rules: AI is not set up.)'); }
+  catch (_) { $('#briefText').textContent = 'Could not write the brief.'; }
+  b.disabled = false;
+});
+
+/* ---------- map (Leaflet + OpenStreetMap) ---------- */
+let map = null, layer = null, lastReqs = [];
+function ensureMap() {
+  if (map) return;
+  if (!window.L) { $('#mapNote').textContent = 'The map library could not load (no internet on this computer?).'; return; }
+  map = L.map('map').setView([10.0, 76.3], 8);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
+  layer = L.layerGroup().addTo(map);
+}
+function dot(color) { return L.divIcon({ className: '', html: '<div style="width:16px;height:16px;border-radius:50%;background:' + color + ';border:2px solid #fff;box-shadow:0 0 3px rgba(0,0,0,.5)"></div>', iconSize: [16, 16], iconAnchor: [8, 8] }); }
+function drawMap() {
+  if (!map) return; layer.clearLayers(); const pts = [];
+  lastReqs.filter(r => r.latitude != null).forEach(r => {
+    const color = r.priority === 'CRITICAL' ? '#d92d20' : r.priority === 'HIGH' ? '#f79009' : '#2155cd';
+    const m = L.marker([r.latitude, r.longitude], { icon: dot(color) }).addTo(layer);
+    const box = el('div'); box.append(el('b', '', r.emergencyType + ' · ' + r.priority), el('br'), document.createTextNode(r.peopleNeedingHelp + ' people · ' + r.status), el('br'), document.createTextNode(r.ai && r.ai.summary ? r.ai.summary : (r.description || '').slice(0, 100)));
+    m.bindPopup(box); pts.push([r.latitude, r.longitude]);
+  });
+  helpers.filter(h => h.latitude != null).forEach(h => {
+    const m = L.marker([h.latitude, h.longitude], { icon: dot('#12b76a') }).addTo(layer);
+    const box = el('div'); box.append(el('b', '', h.name), el('br'), document.createTextNode('Location updated ' + when(h.locationUpdatedAt)));
+    m.bindPopup(box); pts.push([h.latitude, h.longitude]);
+  });
+  if (pts.length) map.fitBounds(pts, { padding: [40, 40], maxZoom: 14 });
+  $('#mapNote').textContent = pts.length ? '' : 'Nothing to show yet. Requests with a GPS location and helpers who share their location appear here.';
+}
+
+/* ---------- requests ---------- */
+function notifyText(r, h) {
+  const where = r.latitude != null ? ' Location: https://maps.google.com/?q=' + r.latitude + ',' + r.longitude + '.' : '';
+  return 'Kerala Rescue: new assignment ' + r.emergencyId + ' (' + r.emergencyType + ', ' + r.priority + ', ' + r.peopleNeedingHelp + ' people). ' +
+         (r.description || '').slice(0, 120) + where + ' Open your page: ' + helperLink(h);
+}
+function makeCard(r) {
+  const card = el('article', 'card' + (r.priority === 'CRITICAL' ? ' crit' : ''));
+  card.addEventListener('input', () => card.dataset.dirty = '1'); card.addEventListener('change', () => card.dataset.dirty = '1');
+  const head = el('div', 'row'); const left = el('div', 'grow');
+  left.append(el('div', 'title', r.emergencyType === 'CRITICAL_SOS' ? 'Critical SOS' : r.emergencyType), el('div', 'sub', r.emergencyId + ' · received ' + when(r.createdAt)));
+  const b1 = el('span', 'badge ' + r.priority, r.priority), b2 = el('span', 'badge status', r.status);
+  head.append(left, b1, b2); card.append(head);
+
+  const facts = el('div', 'facts');
+  facts.append(field('People', r.peopleNeedingHelp), field('Conditions', r.conditionDetails));
+  const loc = el('div'); loc.append(el('span', '', 'Location'));
+  if (r.latitude != null) { const a = el('a', '', 'Open in Maps'); a.href = 'https://maps.google.com/?q=' + encodeURIComponent(r.latitude + ',' + r.longitude); a.target = '_blank'; a.rel = 'noopener'; loc.append(a); }
+  else loc.append(el('b', '', 'Not available'));
+  const call = el('div'); call.append(el('span', '', 'Caller phone'));
+  if (r.phone) { const a = el('a', '', r.phone); a.href = 'tel:' + r.phone; call.append(a); } else call.append(el('b', '', 'Not given'));
+  facts.append(loc, call); card.append(facts);
+  if (r.description) card.append(el('p', 'desc', r.description));
+  card.append(aiBox(r, card));
+  if (r.hasImage) { const img = el('img', 'photo'); img.alt = 'Photo from the person'; blobImage(img, '/api/emergencies/' + encodeURIComponent(r.emergencyId) + '/image'); card.append(img); }
+
+  // Assignment
+  const box = el('div', 'assign'); const assigned = (r.assignedTeam || '').trim();
+  const picker = el('div', 'row'); const sel = el('select', 'grow');
+  sel.append(new Option(helpers.length ? 'Choose a helper…' : 'Add a helper first (Helpers tab)', ''));
+  helpers.forEach(h => sel.append(new Option(h.name, h.name))); sel.disabled = !helpers.length;
+  const eta = el('input'); eta.placeholder = 'ETA, e.g. 20 min'; eta.value = r.estimatedArrival || ''; eta.style.width = '150px';
+  const go = el('button', 'btn', assigned ? 'Reassign' : 'Assign');
+  go.addEventListener('click', async () => {
+    if (!sel.value) { notice('Choose a helper first.'); return; }
+    go.disabled = true;
+    const res = await api('/api/emergencies/' + encodeURIComponent(r.emergencyId) + '/status', { method:'PATCH', body: JSON.stringify({ status:'HELPER ASSIGNED', assignedTeam: sel.value, estimatedArrival: eta.value }) });
+    delete card.dataset.dirty; go.disabled = false;
+    notice(res.ok ? 'Assigned to ' + sel.value + '. Now send them the message below.' : 'Could not assign.'); refresh();
+  });
+  picker.append(sel, eta, go);
+  const near = el('button', 'btn ghost', 'Suggest nearest');
+  const suggBox = el('div', 'sugg');
+  near.addEventListener('click', async () => {
+    near.disabled = true; suggBox.replaceChildren();
+    try {
+      const x = await api('/api/emergencies/' + encodeURIComponent(r.emergencyId) + '/nearest-helpers');
+      if (!x.ok) throw new Error();
+      const list = await x.json();
+      if (!list.length) suggBox.append(el('span', 'sub', 'No helpers yet.'));
+      list.slice(0, 5).forEach(s => {
+        const b = el('button'); card.dataset.dirty = '1';
+        const dist = s.distanceMeters == null ? 'location unknown' : (s.distanceMeters / 1000).toFixed(1) + ' km · ~' + s.etaMinutes + ' min';
+        b.append(document.createTextNode(s.name));
+        b.append(el('small', '', dist + ' · ' + s.activeAssignments + ' active' + (s.distanceMeters != null && !s.locationFresh ? ' · location ' + s.locationAgeMinutes + ' min old' : '')));
+        b.addEventListener('click', () => { [...sel.options].forEach(o => { if (o.value === s.name) sel.value = s.name; }); if (s.etaMinutes != null && !eta.value) eta.value = s.etaMinutes + ' min'; });
+        suggBox.append(b);
+      });
+    } catch (_) { suggBox.append(el('span', 'sub', 'Could not load suggestions.')); }
+    near.disabled = false;
+  });
+  picker.append(near);
+  if (assigned) {
+    box.append(el('h4', '', 'Assigned to'));
+    const line = el('div', 'row'); line.append(el('b', 'grow', assigned + (r.estimatedArrival ? ' · ETA ' + r.estimatedArrival : '')), el('span', 'badge ok', r.status)); box.append(line);
+    const h = helpers.find(x => x.name.toLowerCase() === assigned.toLowerCase());
+    const send = el('div', 'row'); send.style.marginTop = '10px';
+    if (h) {
+      const text = notifyText(r, h), digits = phoneDigits(h.phone);
+      if (digits) {
+        const wa = el('a', 'btn soft', 'Message on WhatsApp'); wa.href = 'https://wa.me/' + digits + '?text=' + encodeURIComponent(text); wa.target = '_blank'; wa.rel = 'noopener'; wa.style.textDecoration = 'none';
+        const sm = el('a', 'btn ghost', 'Send SMS'); sm.href = 'sms:' + h.phone + '?body=' + encodeURIComponent(text); sm.style.textDecoration = 'none';
+        send.append(wa, sm);
+      } else send.append(el('span', 'sub', 'No phone saved for this helper. Share their link from the Helpers tab.'));
+      const copy = el('button', 'btn ghost', 'Copy message'); copy.addEventListener('click', async () => { try { await navigator.clipboard.writeText(text); notice('Message copied.'); } catch (_) { notice('Could not copy.'); } });
+      send.append(copy);
+    } else send.append(el('span', 'sub', 'This name is not in your helper list, so no notify message can be built.'));
+    box.append(send);
+    const more = el('div'); more.style.marginTop = '10px'; more.append(el('h4', '', 'Change helper')); more.append(picker); box.append(more);
+  } else { box.append(el('h4', '', 'Not assigned yet')); box.append(picker); }
+  box.append(suggBox);
+  card.append(box);
+
+  // More: status/priority + messages
+  const more = el('details'); more.append(el('summary', '', 'More: status, priority, messages'));
+  const ctl = el('div', 'row'); ctl.style.marginTop = '10px';
+  const st = el('select'); const legacy = { REQUESTED:'RECEIVED', ACKNOWLEDGED:'UNDER REVIEW', TEAM_ASSIGNED:'HELPER ASSIGNED', IN_PROGRESS:'RESCUE IN PROGRESS' };
+  ['SOS SENT','RECEIVED','UNDER REVIEW','HELPER ASSIGNED','HELPER ON THE WAY','HELPER ARRIVED','RESCUE IN PROGRESS','RESOLVED','CANCELLED'].forEach(v => { const o = new Option(v, v); o.selected = v === (legacy[r.status] || r.status); st.append(o); });
+  const pr = el('select'); ['CRITICAL','HIGH','MEDIUM','LOW'].forEach(v => { const o = new Option(v + ' priority', v); o.selected = v === r.priority; pr.append(o); });
+  const save = el('button', 'btn soft', 'Save'); save.addEventListener('click', async () => {
+    const res = await api('/api/emergencies/' + encodeURIComponent(r.emergencyId) + '/status', { method:'PATCH', body: JSON.stringify({ status: st.value, priority: pr.value }) });
+    delete card.dataset.dirty; notice(res.ok ? 'Saved.' : 'Could not save.'); refresh();
+  });
+  ctl.append(st, pr, save); more.append(ctl);
+  const list = el('div', 'msgs'); more.append(list);
+  const mrow = el('div', 'row'); const mi = el('input', 'grow'); mi.placeholder = 'Message to the person who asked for help'; const ms = el('button', 'btn soft', 'Send');
+  async function load() { try { const x = await api('/api/emergencies/' + encodeURIComponent(r.emergencyId) + '/messages'); if (!x.ok) return; const items = await x.json(); list.replaceChildren();
+    items.forEach(m => { const d = el('div', 'msg'); d.append(el('small', '', m.senderName + ' · ' + when(m.createdAt)), el('span', '', m.message)); list.append(d); }); } catch (_) {} }
+  more.addEventListener('toggle', () => { if (more.open) load(); });
+  ms.addEventListener('click', async () => { const t = mi.value.trim(); if (!t) return; const x = await api('/api/emergencies/' + encodeURIComponent(r.emergencyId) + '/messages', { method:'POST', body: JSON.stringify({ senderRole:'RESPONDER', senderName:'Control room', message:t }) }); if (x.ok) { mi.value = ''; load(); } else notice('Could not send.'); });
+  mrow.append(mi, ms); more.append(mrow); card.append(more);
+  return card;
+}
+function renderRequests(list) {
+  const seen = new Set(), order = [];
+  list.forEach(r => { seen.add(r.emergencyId); let c = cardEls.get(r.emergencyId); if (!c || !c.dataset.dirty) { c = makeCard(r); cardEls.set(r.emergencyId, c); } order.push(c); });
+  [...cardEls.keys()].forEach(k => { if (!seen.has(k)) cardEls.delete(k); });
+  const box = $('#cards'); const same = order.length === box.children.length && order.every((c, i) => box.children[i] === c);
+  if (!same) box.replaceChildren(...order);
+  $('#emptyRequests').classList.toggle('hide', list.length > 0);
+}
+
+/* ---------- helpers ---------- */
+function showPin(h, pin, verb) {
+  const b = $('#pinBox'); b.classList.remove('hide'); b.replaceChildren();
+  b.append(el('div', '', verb + ' ' + h.name + '. Share these with them now. The PIN will not be shown again.'));
+  const l = el('div'); l.style.margin = '8px 0'; l.append(document.createTextNode('Helper ID: '), el('b', '', h.helperId), document.createTextNode('   PIN: '), el('code', '', pin)); b.append(l);
+  const a = el('a', '', helperLink(h)); a.href = helperLink(h); a.target = '_blank'; a.rel = 'noopener'; b.append(a);
+}
+function renderHelpers() {
+  const box = $('#helperList'); box.replaceChildren();
+  if (!helpers.length) { box.append(el('div', 'empty', 'No helpers yet. Add your first helper above.')); return; }
+  helpers.forEach(h => {
+    const c = el('div', 'card row'); const l = el('div', 'grow'); l.append(el('div', 'title', h.name), el('div', 'sub', 'ID ' + h.helperId + (h.phone ? ' · ' + h.phone : '')));
+    const copy = el('button', 'btn ghost', 'Copy link'); copy.addEventListener('click', async () => { try { await navigator.clipboard.writeText(helperLink(h)); notice('Link copied for ' + h.name + '.'); } catch (_) { notice(helperLink(h)); } });
+    const reset = el('button', 'btn soft', 'Reset PIN'); reset.addEventListener('click', async () => { const r = await api('/api/helpers/' + encodeURIComponent(h.helperId) + '/reset-pin', { method:'POST' }); if (r.ok) { const d = await r.json(); showPin(d.helper, d.pin, 'New PIN for'); } });
+    const del = el('button', 'btn red', 'Remove'); del.addEventListener('click', async () => { if (!confirm('Remove ' + h.name + '? They will no longer be able to sign in.')) return; await api('/api/helpers/' + encodeURIComponent(h.helperId), { method:'DELETE' }); refresh(); });
+    c.append(l, copy, reset, del); box.append(c);
+  });
+}
+$('#addHelper').addEventListener('click', async () => {
+  const name = $('#helperName').value.trim(); if (!name) { notice('Enter a name.'); return; }
+  const r = await api('/api/helpers', { method:'POST', body: JSON.stringify({ name, phone: $('#helperPhone').value.trim() }) });
+  if (r.status === 409) { notice('A helper with that name already exists.'); return; }
+  if (!r.ok) { notice('Could not add helper.'); return; }
+  const d = await r.json(); $('#helperName').value = ''; $('#helperPhone').value = ''; showPin(d.helper, d.pin, 'Added'); notice(''); refresh();
+});
+$('#saveBase').addEventListener('click', () => { try { localStorage.setItem('helperBase', $('#baseUrl').value.trim()); } catch (_) {} notice('Saved.'); renderHelpers(); cardEls.clear(); refresh(); });
+
+/* ---------- history ---------- */
+function renderHistory(items) {
+  const box = $('#historyList'); box.replaceChildren();
+  if (!items.length) { box.append(el('div', 'empty', 'No finished requests yet.')); return; }
+  items.forEach(r => { const c = el('div', 'card row'); const l = el('div', 'grow'); l.append(el('div', 'title', r.emergencyType === 'CRITICAL_SOS' ? 'Critical SOS' : r.emergencyType), el('div', 'sub', r.emergencyId + ' · ' + when(r.createdAt) + ' · ' + val(r.assignedTeam)));
+    const remove = el('button', 'btn ghost', 'Delete'); remove.title = 'Permanently delete this history record and its messages';
+    remove.addEventListener('click', async () => {
+      if (!confirm('Permanently delete history for ' + r.emergencyId + '? This also deletes its messages and cannot be undone.')) return;
+      remove.disabled = true;
+      try {
+        const response = await api('/api/history/' + encodeURIComponent(r.emergencyId), { method:'DELETE' });
+        if (!response.ok) throw new Error();
+        notice('History record deleted.'); refresh();
+      } catch (_) { notice('Could not delete history. Check the backend connection and responder key.'); remove.disabled = false; }
+    });
+    c.append(l, el('span', 'badge ' + r.priority, r.priority), el('span', 'badge status', r.status), remove); box.append(c); });
+}
+
+/* ---------- refresh ---------- */
+function notifyNew(list) {
+  const ids = new Set(list.map(r => r.emergencyId));
+  if (known && 'Notification' in window && Notification.permission === 'granted')
+    list.filter(r => !known.has(r.emergencyId)).forEach(r => new Notification(r.priority === 'CRITICAL' ? 'Critical emergency' : 'New request', { body: r.emergencyId + ' · ' + r.emergencyType }));
+  known = ids;
+}
+async function refresh() {
+  try {
+    const [a, s, n, h, hl] = await Promise.all([api('/api/emergencies'), api('/api/summary'), api('/api/analytics'), api('/api/history'), api('/api/helpers')]);
+    if (a.status === 401) { $('#gate').classList.remove('hide'); $('#app').classList.add('hide'); return; }
+    if (![a, s, n, h, hl].every(x => x.ok)) throw new Error();
+    const reqs = await a.json(), sum = await s.json(), an = await n.json(), hist = await h.json(); helpers = await hl.json();
+    $('#gate').classList.add('hide'); $('#app').classList.remove('hide');
+    $('#openCount').textContent = sum.openRequests; $('#peopleCount').textContent = sum.peopleNeedingHelp;
+    $('#criticalCount').textContent = reqs.filter(r => r.priority === 'CRITICAL').length;
+    $('#unassignedCount').textContent = reqs.filter(r => !(r.assignedTeam || '').trim()).length;
+    $('#responseTime').textContent = an.averageResponseSeconds ? Math.round(an.averageResponseSeconds / 60) + ' min' : '—';
+    document.title = (reqs.length ? '(' + reqs.length + ') ' : '') + 'Kerala Rescue · Control room';
+    lastReqs = reqs; notifyNew(reqs); renderRequests(reqs); renderHelpers(); renderHistory(hist); drawMap();
+  } catch (_) { notice('Could not reach the server. Is the backend running?'); }
+}
+/* ---------- sign-in, live updates, system status ---------- */
+let es = null, liveTimer = null;
+function setLive(on) { $('#liveDot').classList.toggle('on', on); $('#chipLive').classList.toggle('on', on); $('#chipLive').lastChild.textContent = on ? 'Live' : 'Polling'; }
+function connectLive() {
+  if (es) { es.close(); es = null; }
+  if (!key || !window.EventSource) { setLive(false); return; }
+  es = new EventSource('/api/stream?token=' + encodeURIComponent(key));
+  ['created', 'updated', 'ai', 'message'].forEach(t => es.addEventListener(t, () => { clearTimeout(liveTimer); liveTimer = setTimeout(refresh, 300); }));
+  es.onopen = () => setLive(true);
+  es.onerror = () => { setLive(false); if (es && es.readyState === 2) es = null; };
+}
+async function loadStatus() {
+  try {
+    const x = await api('/api/system/status'); if (!x.ok) return; const s = await x.json();
+    [['#chipAi', 'AI', s.ai], ['#chipSms', 'SMS', s.sms], ['#chipPush', 'Push', s.push]].forEach(([id, name, on]) => { $(id).classList.toggle('on', !!on); $(id).textContent = name + (on ? ' on' : ' off'); });
+  } catch (_) {}
+}
+async function signIn() {
+  const raw = $('#responderKey').value.trim(); if (!raw) return;
+  try {
+    const r = await fetch('/api/auth/responder', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ key: raw }) });
+    if (r.status === 401) { notice('Wrong responder key.'); return; }
+    if (r.status === 429) { notice('Too many attempts. Wait a minute and try again.'); return; }
+    if (!r.ok) throw new Error();
+    key = (await r.json()).token; try { sessionStorage.setItem('responderKey', key); } catch (_) {}
+    $('#responderKey').value = ''; notice(''); await refresh(); connectLive(); loadStatus();
+  } catch (_) { notice('Could not reach the server. Is the backend running?'); }
+}
+$('#saveKey').addEventListener('click', signIn);
+$('#responderKey').addEventListener('keydown', e => { if (e.key === 'Enter') $('#saveKey').click(); });
+$('#baseUrl').value = baseUrl();
+if (['localhost','127.0.0.1'].includes(location.hostname)) $('#baseWarn').classList.remove('hide');
+if ('Notification' in window && Notification.permission === 'default') document.addEventListener('click', () => Notification.requestPermission(), { once:true });
+refresh().then(() => { if (key) { connectLive(); loadStatus(); } }); setInterval(refresh, 15000);
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+</body>
+</html>

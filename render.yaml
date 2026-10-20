@@ -1,0 +1,37 @@
+services:
+  - type: web
+    name: kerala-rescue-api
+    runtime: docker
+    plan: starter
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    disk:
+      name: kerala-rescue-data
+      mountPath: /var/lib/kerala-rescue
+      sizeGB: 1
+    envVars:
+      - key: PORT
+        value: "10000"
+      - key: RESCUE_RESPONDER_KEY
+        generateValue: true
+      - key: SPRING_DATASOURCE_USERNAME
+        value: sa
+      - key: SPRING_DATASOURCE_PASSWORD
+        generateValue: true
+      # ---- Optional integrations. Leave a value empty and that feature simply stays off. ----
+      - key: RESCUE_JWT_SECRET
+        generateValue: true
+      - key: RESCUE_PUBLIC_URL
+        sync: false          # e.g. https://kerala-rescue-api.onrender.com (used in SMS links)
+      - key: ANTHROPIC_API_KEY
+        sync: false          # Claude API key: switches on AI triage, translation, brief
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_FROM_NUMBER
+        sync: false
+      - key: FIREBASE_SERVICE_ACCOUNT_JSON
+        sync: false          # paste the whole service-account JSON: switches on push notifications

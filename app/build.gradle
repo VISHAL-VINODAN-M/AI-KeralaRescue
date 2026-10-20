@@ -1,0 +1,28 @@
+plugins { id 'com.android.application' }
+
+// Push notifications are optional: add app/google-services.json from your Firebase project to switch them on.
+if (file('google-services.json').exists()) { apply plugin: 'com.google.gms.google-services' }
+
+def rescueApiBaseUrl = providers.gradleProperty('rescueApiBaseUrl')
+        .getOrElse('https://kerala-rescue.onrender.com/api/emergencies')
+
+android { namespace 'com.keralarescue.mobile'; compileSdk 35
+    defaultConfig {
+        applicationId 'com.keralarescue.mobile'
+        minSdk 26
+        targetSdk 35
+        versionCode 1
+        versionName '1.0'
+        buildConfigField 'String', 'API_BASE_URL', "\"${rescueApiBaseUrl}\""
+    }
+    buildFeatures { buildConfig true }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'com.google.android.material:material:1.12.0'
+    implementation 'androidx.activity:activity:1.9.3'
+    implementation 'com.google.android.gms:play-services-location:21.3.0'
+    implementation 'androidx.work:work-runtime:2.10.0'
+    implementation 'com.google.firebase:firebase-messaging:24.1.0'
+}

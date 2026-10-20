@@ -1,0 +1,22 @@
+<resources>
+    <style name="Theme.KeralaRescue" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:textColorPrimary">@color/ink</item>
+        <item name="android:textColorSecondary">#475569</item>
+        <item name="colorPrimary">#2155CD</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="colorSecondary">#4C89EA</item>
+        <item name="colorSurface">#FFFFFF</item>
+        <item name="android:colorAccent">#2155CD</item>
+    </style>
+    <style name="ThemeOverlay.KeralaRescue.Spinner" parent="ThemeOverlay.Material3">
+        <item name="android:textColorPrimary">@color/ink</item>
+        <item name="android:textColorSecondary">#475569</item>
+    </style>
+    <style name="Widget.KeralaRescue.ConditionChip" parent="Widget.Material3.Chip.Filter">
+        <item name="android:textColor">@color/ink</item>
+        <item name="chipBackgroundColor">@color/surface</item>
+        <item name="chipStrokeColor">#D1D5DB</item>
+        <item name="chipStrokeWidth">1dp</item>
+    </style>
+</resources>
