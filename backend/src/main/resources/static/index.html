@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Kerala Rescue · Control room</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.css">
 <style>
   :root { --bg:#f6f7f9; --card:#fff; --ink:#111827; --muted:#6b7280; --line:#e5e7eb; --blue:#2155cd; --blue-soft:#eef3fd;
           --red:#d92d20; --red-soft:#fee4e2; --amber:#b54708; --amber-soft:#fef0c7; --green:#067647; --green-soft:#dcfae6; }
@@ -207,30 +207,39 @@ $('#briefBtn').addEventListener('click', async () => {
   b.disabled = false;
 });
 
-/* ---------- map (Leaflet + OpenStreetMap) ---------- */
-let map = null, layer = null, lastReqs = [];
+/* ---------- map (MapLibre + OpenFreeMap) ---------- */
+let map = null, mapMarkers = [], lastReqs = [];
 function ensureMap() {
   if (map) return;
-  if (!window.L) { $('#mapNote').textContent = 'The map library could not load (no internet on this computer?).'; return; }
-  map = L.map('map').setView([10.0, 76.3], 8);
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
-  layer = L.layerGroup().addTo(map);
+  if (!window.maplibregl) { $('#mapNote').textContent = 'The map library could not load. Check your internet connection and reload.'; return; }
+  map = new maplibregl.Map({ container:'map', style:'https://tiles.openfreemap.org/styles/positron', center:[76.3, 10.0], zoom:7, attributionControl:true });
+  map.addControl(new maplibregl.NavigationControl({ showCompass:false }), 'top-left');
+  map.on('error', e => { if (!mapMarkers.length) $('#mapNote').textContent = 'Map tiles could not be loaded. Check your internet connection.'; });
+  map.on('load', drawMap);
 }
-function dot(color) { return L.divIcon({ className: '', html: '<div style="width:16px;height:16px;border-radius:50%;background:' + color + ';border:2px solid #fff;box-shadow:0 0 3px rgba(0,0,0,.5)"></div>', iconSize: [16, 16], iconAnchor: [8, 8] }); }
+function markerElement(color) {
+  const node = document.createElement('div');
+  node.style.cssText = 'width:18px;height:18px;border-radius:50%;background:' + color + ';border:3px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.45);cursor:pointer';
+  return node;
+}
 function drawMap() {
-  if (!map) return; layer.clearLayers(); const pts = [];
+  if (!map || !map.isStyleLoaded()) return;
+  mapMarkers.forEach(marker => marker.remove()); mapMarkers = []; const pts = [];
   lastReqs.filter(r => r.latitude != null).forEach(r => {
     const color = r.priority === 'CRITICAL' ? '#d92d20' : r.priority === 'HIGH' ? '#f79009' : '#2155cd';
-    const m = L.marker([r.latitude, r.longitude], { icon: dot(color) }).addTo(layer);
-    const box = el('div'); box.append(el('b', '', r.emergencyType + ' · ' + r.priority), el('br'), document.createTextNode(r.peopleNeedingHelp + ' people · ' + r.status), el('br'), document.createTextNode(r.ai && r.ai.summary ? r.ai.summary : (r.description || '').slice(0, 100)));
-    m.bindPopup(box); pts.push([r.latitude, r.longitude]);
+    const box = document.createElement('div'); box.append(el('b', '', r.emergencyType + ' · ' + r.priority), el('br'), document.createTextNode(r.peopleNeedingHelp + ' people · ' + r.status), el('br'), document.createTextNode(r.ai && r.ai.summary ? r.ai.summary : (r.description || '').slice(0, 100)));
+    const popup = new maplibregl.Popup({ offset:14 }).setDOMContent(box);
+    mapMarkers.push(new maplibregl.Marker({ element:markerElement(color) }).setLngLat([r.longitude, r.latitude]).setPopup(popup).addTo(map));
+    pts.push([r.longitude, r.latitude]);
   });
   helpers.filter(h => h.latitude != null).forEach(h => {
-    const m = L.marker([h.latitude, h.longitude], { icon: dot('#12b76a') }).addTo(layer);
-    const box = el('div'); box.append(el('b', '', h.name), el('br'), document.createTextNode('Location updated ' + when(h.locationUpdatedAt)));
-    m.bindPopup(box); pts.push([h.latitude, h.longitude]);
+    const box = document.createElement('div'); box.append(el('b', '', h.name), el('br'), document.createTextNode('Location updated ' + when(h.locationUpdatedAt)));
+    const popup = new maplibregl.Popup({ offset:14 }).setDOMContent(box);
+    mapMarkers.push(new maplibregl.Marker({ element:markerElement('#12b76a') }).setLngLat([h.longitude, h.latitude]).setPopup(popup).addTo(map));
+    pts.push([h.longitude, h.latitude]);
   });
-  if (pts.length) map.fitBounds(pts, { padding: [40, 40], maxZoom: 14 });
+  if (pts.length === 1) map.flyTo({ center:pts[0], zoom:14 });
+  else if (pts.length > 1) map.fitBounds(pts.reduce((b,p) => b.extend(p), new maplibregl.LngLatBounds()), { padding:40, maxZoom:14 });
   $('#mapNote').textContent = pts.length ? '' : 'Nothing to show yet. Requests with a GPS location and helpers who share their location appear here.';
 }
 
@@ -448,6 +457,6 @@ if (['localhost','127.0.0.1'].includes(location.hostname)) $('#baseWarn').classL
 if ('Notification' in window && Notification.permission === 'default') document.addEventListener('click', () => Notification.requestPermission(), { once:true });
 refresh().then(() => { if (key) { connectLive(); loadStatus(); } }); setInterval(refresh, 15000);
 </script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.js"></script>
 </body>
 </html>
